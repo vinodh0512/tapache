@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rec_1789783792650_92nu5",
+    "session_id": null,
+    "timestamp": "2026-09-19T02:09:52.650Z",
+    "elapsed_seconds": 0,
+    "elapsed_time": "00:00:00",
+    "temperature_C": 29.5,
+    "pH": 5.2,
+    "pH_raw": 2800,
+    "pH_voltage": 2.25,
+    "turbidity_NTU": 75,
+    "turbidity_raw": 430,
+    "turbidity_voltage": 0.5,
+    "fermentation_stage": "EARLY"
+  },
+  {
+    "id": "rec_1789784383987_v5onv",
+    "session_id": null,
+    "timestamp": "2026-09-19T02:19:43.987Z",
+    "elapsed_seconds": 0,
+    "elapsed_time": "00:00:00",
+    "temperature_C": 28.7,
+    "pH": 4.85,
+    "pH_raw": 2750,
+    "pH_voltage": null,
+    "turbidity_NTU": 92.4,
+    "turbidity_raw": 520,
+    "turbidity_voltage": null,
+    "fermentation_stage": "EARLY"
+  }
+]
