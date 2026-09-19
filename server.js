@@ -28,7 +28,9 @@ const HOST = process.env.HOST || fermentationConfig.server.host || '0.0.0.0';
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text({ type: '*/*', limit: '1mb' }));
 
 // Request logging helper
 app.use((req, res, next) => {
@@ -236,14 +238,31 @@ app.post('/api/mongodb/sync', async (req, res) => {
  * Ingest sensor data from ESP32 or test client
  */
 app.post('/api/sensor-data', (req, res) => {
-  const body = req.body;
+  let body = req.body;
 
-  // Validation: Check for presence of at least temperature or raw values
-  if (!body || typeof body !== 'object') {
-    return res.status(400).json({ error: 'Malformed request: body must be a JSON object' });
+  // Handle body received as raw text string (fallback when content-type is missing or text/plain)
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body.trim());
+    } catch (e) {
+      console.warn('[Sensor Ingestion] Failed to parse string body:', body);
+      return res.status(400).json({
+        error: 'Malformed request: body could not be parsed as JSON',
+        details: e.message,
+        receivedText: body
+      });
+    }
   }
 
-  // Validate numbers if present
+  // Validation: Check for presence of object
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({
+      error: 'Malformed request: body must be a JSON object',
+      receivedType: typeof body
+    });
+  }
+
+  // Validate and coerce numbers if present
   const numericFields = [
     'temperature_C',
     'pH',
@@ -255,15 +274,26 @@ app.post('/api/sensor-data', (req, res) => {
   ];
 
   for (const field of numericFields) {
-    if (body[field] !== undefined && body[field] !== null && isNaN(Number(body[field]))) {
-      return res.status(400).json({ error: `Invalid value for '${field}': must be numeric` });
+    if (body[field] !== undefined && body[field] !== null) {
+      const val = Number(body[field]);
+      if (isNaN(val)) {
+        return res.status(400).json({
+          error: `Invalid value for '${field}': must be numeric`,
+          receivedValue: body[field]
+        });
+      }
+      body[field] = val;
     }
   }
 
   // Check that at least some sensor data is present
   const hasData = numericFields.some(field => body[field] !== undefined && body[field] !== null);
   if (!hasData) {
-    return res.status(400).json({ error: 'Sensor payload contains no recognized sensor fields' });
+    return res.status(400).json({
+      error: 'Sensor payload contains no recognized sensor fields',
+      receivedKeys: Object.keys(body),
+      expectedFields: numericFields
+    });
   }
 
   // Calculate current session elapsed time and estimated stage
